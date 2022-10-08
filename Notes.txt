@@ -1,0 +1,59 @@
+//volum
+/**
+ * two way binding : docker run -p 4000:4000 --name node-app-container -v C:\Users\reham\Desktop\Docker\docker-app:/app -d node-app
+ * one way binding : docker run -p 4000:4000 --name node-app-container -v %cd%:/app:ro -d node-app
+ * anonimus volumn "don't change it in container": -v /app/node_module
+ * one way binding to specific folder : docker run -p 4000:4000 --name node-app-container -v %cd%/src:/app/src/ro -d node-app
+ */
+
+/-------------------------------------------------------------------------/
+ //environment
+ env_file:
+      - ./.env
+environment:
+      - PORT=4000
+/-------------------------------------------------------------------------/
+//multi environment "prod-dev-..." on Dockerfile
+//1
+Dockerfile
+ARG NODE_ENV
+RUN if ["${NODE_ENV}"=="production"]; \
+    then npm install --only=production; \
+    else npm install; \
+    fi
+
+docker-compose.dev.yml
+ build: 
+      context: .
+      args:
+      - NODE_ENV=developement
+//2 stage
+Dockerfile
+FROM node:14 as development
+
+WORKDIR /app
+COPY package.json .
+RUN npm install
+COPY . .
+EXPOSE 4000
+CMD [ "npm","run","start-dev" ]
+
+FROM node:14 as production
+
+WORKDIR /app
+COPY package.json .
+RUN npm install --only=production
+COPY . .
+EXPOSE 4000
+CMD [ "npm","start" ]
+
+
+docker-compose.dev.yml
+node-app: 
+    build: 
+      context: .
+      target: development
+
+
+/-------------------------------------------------------------------------/
+//
